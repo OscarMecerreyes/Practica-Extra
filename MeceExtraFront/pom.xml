@@ -71,6 +71,11 @@
             <artifactId>vaadin-testbench-junit5</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.rapidpm.vaadin</groupId>
+            <artifactId>vaadin-fluent-component-api</artifactId>
+            <version>00.01.00-RPM</version>
+        </dependency>
     </dependencies>
 
     <build>
