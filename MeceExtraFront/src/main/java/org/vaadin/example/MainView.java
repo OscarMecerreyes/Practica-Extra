@@ -6,6 +6,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.Column;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.UUID;
 
 @Route("")
 public class MainView extends VerticalLayout {
@@ -68,8 +70,10 @@ public class MainView extends VerticalLayout {
             Button deleteButton = new Button("Delete");
             deleteButton.addClickListener(e -> deleteData(data, grid));
             deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+            Button useButton = new Button("Usar");
+            useButton.addClickListener(e -> useData(data));
 
-            HorizontalLayout actions = new HorizontalLayout(editButton, deleteButton);
+            HorizontalLayout actions = new HorizontalLayout(editButton, deleteButton, useButton);
             return actions;
         }).setHeader("Actions");
 
@@ -80,8 +84,51 @@ public class MainView extends VerticalLayout {
             e.printStackTrace();
         }
 
-        layout.add(grid);
+        Button addButton = new Button("Add New", e -> openAddDialog(grid));
+        layout.add(grid, addButton);
         return layout;
+    }
+
+    private void openAddDialog(Grid<datosGenerales> grid) {
+        Dialog dialog = new Dialog();
+        dialog.setCloseOnEsc(true);
+        dialog.setCloseOnOutsideClick(true);
+
+        TextField mscodeField = new TextField("mscode");
+        TextField yearField = new TextField("year");
+        TextField estCodeField = new TextField("estCode");
+        TextField estimateField = new TextField("estimate");
+        TextField seField = new TextField("se");
+        TextField lowerCIBField = new TextField("lowerCIB");
+        TextField upperCIBField = new TextField("upperCIB");
+        TextField flagField = new TextField("flag");
+
+        Button saveButton = new Button("Save", event -> {
+            datosGenerales newData = new datosGenerales(
+                    UUID.randomUUID().toString(),
+                    mscodeField.getValue(),
+                    yearField.getValue(),
+                    estCodeField.getValue(),
+                    Float.parseFloat(estimateField.getValue()),
+                    Float.parseFloat(seField.getValue()),
+                    Float.parseFloat(lowerCIBField.getValue()),
+                    Float.parseFloat(upperCIBField.getValue()),
+                    flagField.getValue()
+            );
+
+            try {
+                greetService.addCpNationalData(newData);
+                dataListGeneral.add(newData);
+                grid.setItems(dataListGeneral);
+                dialog.close();
+            } catch (IOException | InterruptedException | URISyntaxException e) {
+                e.printStackTrace();
+            }
+        });
+
+        VerticalLayout dialogLayout = new VerticalLayout(mscodeField, yearField, estCodeField, estimateField, seField, lowerCIBField, upperCIBField, flagField, saveButton);
+        dialog.add(dialogLayout);
+        dialog.open();
     }
 
     private void openEditDialog(datosGenerales data, Grid<datosGenerales> grid) {
@@ -129,6 +176,16 @@ public class MainView extends VerticalLayout {
             grid.setItems(dataListGeneral);
         } catch (IOException | InterruptedException | URISyntaxException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void useData(datosGenerales data) {
+        try {
+            greetService.useCpNationalData(data.get_id());
+            Notification.show("Data used and PDF created for ID: " + data.get_id());
+        } catch (IOException | InterruptedException | URISyntaxException e) {
+            e.printStackTrace();
+            Notification.show("Error using data: " + e.getMessage(), 3000, Notification.Position.MIDDLE);
         }
     }
 
