@@ -55,4 +55,24 @@ public class GreetService implements Serializable {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         return objectMapper.readValue(response.body(), new TypeReference<List<datosGenerales>>() {});
     }
+
+    public void updateCpNationalData(datosGenerales data) throws IOException, InterruptedException, URISyntaxException {
+        String resource = String.format(api, "Datos2/"+data.get_id());
+        HttpRequest request = HttpRequest
+                .newBuilder(new URI(resource))
+                .PUT(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(data)))
+                .header("Content-Type", "application/json")
+                .build();
+        client.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    public void deleteCpNationalData(String id) throws IOException, InterruptedException, URISyntaxException {
+        String resource = String.format(api, "Datos2/"+ id);
+        HttpRequest request = HttpRequest
+                .newBuilder(new URI(resource))
+                .DELETE()
+                .build();
+        client.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
 }
