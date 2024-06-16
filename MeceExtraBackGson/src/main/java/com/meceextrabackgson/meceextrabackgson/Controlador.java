@@ -2,18 +2,18 @@ package com.meceextrabackgson.meceextrabackgson;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Type;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 public class Controlador {
@@ -34,8 +34,88 @@ public class Controlador {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @GetMapping("/mscodes")
+    public ResponseEntity<List<String>> getAllMsCodes() {
+        try (FileReader reader = new FileReader(file2)) {
+            Gson gson = new Gson();
+            Type mapType = new TypeToken<Map<String, List<MsCode>>>() {
+            }.getType();
+            Map<String, List<MsCode>> msCodeMap = gson.fromJson(reader, mapType);
+            Set<String> msCodesSet = msCodeMap.keySet();
 
+            // Convert Set to List and sort alphabetically
+            List<String> msCodesList = new ArrayList<>(msCodesSet);
+            Collections.sort(msCodesList);
 
+            return new ResponseEntity<>(msCodesList, HttpStatus.OK);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+    }
+        private final String usadosFile = "Ficheros/usados.json";
+
+        @PostMapping("/CP/usar/{id}")
+        public ResponseEntity<Void> usarCPNational(@PathVariable String id) {
+            try (FileReader reader = new FileReader(file)) {
+                Gson gson = new Gson();
+                Type listType = new TypeToken<List<CPNational>>() {}.getType();
+                List<CPNational> cpNationalList = gson.fromJson(reader, listType);
+
+                Optional<CPNational> itemOpt = cpNationalList.stream()
+                        .filter(data -> data.get_id().equals(id))
+                        .findFirst();
+
+                if (itemOpt.isPresent()) {
+                    CPNational item = itemOpt.get();
+                    addToUsados(item);
+                    createPDF(item);
+                    return new ResponseEntity<>(HttpStatus.OK);
+                } else {
+                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                }
+            } catch (IOException | DocumentException e) {
+                e.printStackTrace();
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        }
+
+        private void addToUsados(CPNational item) throws IOException {
+            List<CPNational> usadosList = new ArrayList<>();
+            File usadosJsonFile = new File(usadosFile);
+            if (usadosJsonFile.exists()) {
+                try (FileReader reader = new FileReader(usadosFile)) {
+                    Gson gson = new Gson();
+                    Type listType = new TypeToken<List<CPNational>>() {}.getType();
+                    usadosList = gson.fromJson(reader, listType);
+                }
+            }
+
+            usadosList.add(item);
+
+            try (FileWriter writer = new FileWriter(usadosFile)) {
+                Gson gson = new Gson();
+                gson.toJson(usadosList, writer);
+            }
+        }
+
+        private void createPDF(CPNational item) throws DocumentException, IOException {
+            Document document = new Document();
+            PdfWriter.getInstance(document, new FileOutputStream("Ficheros/" + item.get_id() + ".pdf"));
+            document.open();
+            document.add(new Paragraph("ID: " + item.get_id()));
+            document.add(new Paragraph("MsCode: " + item.getMscode()));
+            document.add(new Paragraph("Year: " + item.getYear()));
+            document.add(new Paragraph("EstCode: " + item.getEstCode()));
+            document.add(new Paragraph("Estimate: " + item.getEstimate()));
+            document.add(new Paragraph("SE: " + item.getSe()));
+            document.add(new Paragraph("LowerCIB: " + item.getLowerCIB()));
+            document.add(new Paragraph("UpperCIB: " + item.getUpperCIB()));
+            document.add(new Paragraph("Flag: " + item.getFlag()));
+            document.close();
+        }
+    
 
 
 
